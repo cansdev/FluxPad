@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv-py312/
+
+# Node.js/Next.js
+web/node_modules/
+web/.next/
+web/out/
+web/.pnpm-debug.log*
+web/*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+web/.env*
+
+# Supabase
+supabase/.temp/
