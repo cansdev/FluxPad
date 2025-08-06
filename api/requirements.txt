@@ -1,2 +1,13 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+
+# Authentication & Security (for JWT auth)
+pyjwt==2.8.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Email validation (required for EmailStr)
+email-validator==2.1.0
+
+# Environment & Configuration
+python-dotenv==1.0.0

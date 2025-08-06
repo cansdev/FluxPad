@@ -15,5 +15,10 @@ web/*.tsbuildinfo
 .env.local
 web/.env*
 
+# Security - JWT secrets and sensitive files
+api/.jwt_secret
+**/.jwt_secret
+*.key
+
 # Supabase
 supabase/.temp/
