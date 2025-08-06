@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { API_ENDPOINTS } from '@/lib/config'
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<{id: string, email: string, full_name: string} | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
@@ -31,7 +31,7 @@ export default function DashboardPage() {
 
         const userData = await response.json()
         setUser(userData)
-      } catch (error) {
+      } catch {
         localStorage.removeItem('token')
         router.push('/login')
       } finally {
@@ -87,11 +87,11 @@ export default function DashboardPage() {
                 Welcome to FluxPad! 🎉
               </h2>
               <p className="text-gray-600 mb-6">
-                You're successfully authenticated. This is where your data management interface will be built.
+                You&apos;re successfully authenticated. This is where your data management interface will be built.
               </p>
               <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                 <p className="text-sm text-blue-800">
-                  <strong>Next steps:</strong> We'll add file upload, data visualization, and AI-powered querying features here.
+                  <strong>Next steps:</strong> We&apos;ll add file upload, data visualization, and AI-powered querying features here.
                 </p>
               </div>
             </div>
