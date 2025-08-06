@@ -31,7 +31,11 @@ app = FastAPI(
 # CORS middleware to allow frontend requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_origins=[
+        "http://localhost:3000",  # Local development
+        "https://fluxpad-web-production.up.railway.app",  # Production frontend
+        "https://*.up.railway.app"  # Any Railway subdomain
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
