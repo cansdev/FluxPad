@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { API_ENDPOINTS } from '@/lib/config'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
@@ -18,7 +19,7 @@ export default function DashboardPage() {
       }
 
       try {
-        const response = await fetch('http://localhost:8000/auth/me', {
+        const response = await fetch(API_ENDPOINTS.ME, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

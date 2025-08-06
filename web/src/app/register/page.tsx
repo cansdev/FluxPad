@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { API_ENDPOINTS } from '@/lib/config'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -25,7 +26,7 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/auth/register', {
+      const response = await fetch(API_ENDPOINTS.REGISTER, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
