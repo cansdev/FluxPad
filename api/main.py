@@ -3,12 +3,30 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-import uuid
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 from auth import jwt_manager
+from database import init_database, close_database, get_db, User as DBUser
+from crud import UserCRUD
+from sqlalchemy.ext.asyncio import AsyncSession
 
-app = FastAPI(title="FluxPad API", description="Backend API for FluxPad data interaction platform")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager - handles startup and shutdown"""
+    # Startup
+    await init_database()
+    yield
+    # Shutdown
+    await close_database()
+
+
+app = FastAPI(
+    title="FluxPad API", 
+    description="Backend API for FluxPad data interaction platform",
+    lifespan=lifespan
+)
 
 # CORS middleware to allow frontend requests
 app.add_middleware(
@@ -21,12 +39,6 @@ app.add_middleware(
 
 # Security
 security = HTTPBearer()
-
-# In-memory user storage (we'll replace this with a database later)
-# Structure: {user_id: {email, full_name, hashed_password, created_at, is_active}}
-users_db = {}
-# Email to user_id mapping for quick lookup
-email_to_user_id = {}
 
 # Pydantic models
 class UserRegister(BaseModel):
@@ -54,49 +66,11 @@ class User(BaseModel):
     created_at: datetime
     is_active: bool = True
 
-# Utility functions
-def get_user_by_email(email: str) -> Optional[User]:
-    """Get user by email address"""
-    user_id = email_to_user_id.get(email)
-    if not user_id or user_id not in users_db:
-        return None
-    
-    user_data = users_db[user_id]
-    return User(
-        user_id=user_id,
-        email=user_data["email"],
-        full_name=user_data["full_name"],
-        created_at=user_data["created_at"],
-        is_active=user_data["is_active"]
-    )
-
-def get_user_by_id(user_id: str) -> Optional[User]:
-    """Get user by user ID"""
-    if user_id not in users_db:
-        return None
-    
-    user_data = users_db[user_id]
-    return User(
-        user_id=user_id,
-        email=user_data["email"],
-        full_name=user_data["full_name"],
-        created_at=user_data["created_at"],
-        is_active=user_data["is_active"]
-    )
-
-def authenticate_user(email: str, password: str) -> Optional[User]:
-    """Authenticate user with email and password"""
-    user_id = email_to_user_id.get(email)
-    if not user_id or user_id not in users_db:
-        return None
-    
-    user_data = users_db[user_id]
-    if not jwt_manager.verify_password(password, user_data["hashed_password"]):
-        return None
-    
-    return get_user_by_id(user_id)
-
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
+# Database-backed user authentication
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db)
+) -> User:
     """Get current authenticated user from JWT token"""
     payload = jwt_manager.verify_token(credentials.credentials, "access")
     
@@ -107,14 +81,21 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="Invalid token payload"
         )
     
-    user = get_user_by_id(user_id)
-    if not user:
+    db_user = await UserCRUD.get_user_by_id(db, user_id)
+    if not db_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found"
         )
     
-    return user
+    # Convert database user to Pydantic model
+    return User(
+        user_id=db_user.user_id,
+        email=db_user.email,
+        full_name=db_user.full_name,
+        created_at=db_user.created_at,
+        is_active=db_user.is_active
+    )
 
 # Routes
 @app.get("/ping")
@@ -122,34 +103,27 @@ async def ping():
     return {"status": "pong"}
 
 @app.post("/auth/register", response_model=TokenResponse)
-async def register(user_data: UserRegister):
+async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     """Register new user"""
-    # Check if email already exists
-    if get_user_by_email(user_data.email):
+    # Create new user in database
+    db_user = await UserCRUD.create_user(
+        db=db,
+        email=user_data.email,
+        password=user_data.password,
+        full_name=user_data.full_name
+    )
+    
+    if not db_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
     
-    # Create new user
-    user_id = str(uuid.uuid4())
-    hashed_password = jwt_manager.hash_password(user_data.password)
-    
-    # Store user data
-    users_db[user_id] = {
-        "email": user_data.email,
-        "full_name": user_data.full_name,
-        "hashed_password": hashed_password,
-        "created_at": datetime.utcnow(),
-        "is_active": True,
-    }
-    email_to_user_id[user_data.email] = user_id
-    
     # Generate tokens
     token_data = {
-        "user_id": user_id,
-        "email": user_data.email,
-        "sub": user_data.email  # Standard JWT claim
+        "user_id": db_user.user_id,
+        "email": db_user.email,
+        "sub": db_user.email  # Standard JWT claim
     }
     
     access_token = jwt_manager.create_access_token(token_data)
@@ -163,11 +137,16 @@ async def register(user_data: UserRegister):
     )
 
 @app.post("/auth/login", response_model=TokenResponse)
-async def login(user_data: UserLogin):
+async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
     """Login user"""
     # Authenticate user
-    user = authenticate_user(user_data.email, user_data.password)
-    if not user:
+    db_user = await UserCRUD.authenticate_user(
+        db=db,
+        email=user_data.email,
+        password=user_data.password
+    )
+    
+    if not db_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -176,9 +155,9 @@ async def login(user_data: UserLogin):
     
     # Generate tokens
     token_data = {
-        "user_id": user.user_id,
-        "email": user.email,
-        "sub": user.email  # Standard JWT claim
+        "user_id": db_user.user_id,
+        "email": db_user.email,
+        "sub": db_user.email  # Standard JWT claim
     }
     
     access_token = jwt_manager.create_access_token(token_data)

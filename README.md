@@ -21,7 +21,6 @@ FluxPad enables users to upload, visualize, and transform structured datasets (C
 ### 🚧 **Coming Soon:**
 - **📤 Data Upload & Management**: CSV and Excel file import with automatic schema detection
 - **🔍 Intelligent Querying**: Natural language queries powered by LLM integration
-- **🗃️ Database Storage**: PostgreSQL backend with Supabase integration
 - **🤖 AI-Powered Insights**: Automated metadata generation and column mapping
 - **🔄 Data Transformation**: Advanced filtering through prompt-to-SQL interface
 - **📈 Extensible Architecture**: Enterprise workflows and API integrations
@@ -42,6 +41,11 @@ FluxPad enables users to upload, visualize, and transform structured datasets (C
 - **Pydantic** - Data validation and serialization
 - **Python 3.12+** - Modern Python runtime
 
+### Database & Storage
+- **SQLite** - Lightweight, fast, zero-config database
+- **SQLAlchemy** - Modern async ORM with full SQL support
+- **aiosqlite** - Async SQLite driver for high performance
+
 ### Security & Authentication
 - **Custom JWT System** - Auto-generated secrets, access + refresh tokens
 - **Bcrypt Password Hashing** - Industry-standard password security
@@ -49,7 +53,6 @@ FluxPad enables users to upload, visualize, and transform structured datasets (C
 - **Secure Token Storage** - Automatic secret generation and file permissions
 
 ### Planned Integrations
-- **Supabase** - PostgreSQL database (coming soon)
 - **HuggingFace Transformers** - Local LLM hosting (planned)
 - **OpenAI API** - Enhanced language capabilities (optional)
 
@@ -85,10 +88,10 @@ uvicorn main:app --reload
 
 The API will be available at `http://localhost:8000`
 
-**✨ JWT Secret Auto-Generation:**
-- No manual configuration needed!
-- JWT secret is automatically generated on first run
-- Stored securely in `api/.jwt_secret` (ignored by git)
+**✨ Auto-Configuration:**
+- **JWT Secret**: Automatically generated on first run (512-bit entropy)
+- **Database**: SQLite database auto-creates with proper schema
+- **No manual setup**: Just install dependencies and run!
 
 ### 3. Frontend Setup
 
@@ -104,44 +107,47 @@ pnpm dev
 
 The application will be available at `http://localhost:3000`
 
-### 4. Test the Authentication
+### 4. Test the Full System
 
-1. Visit `http://localhost:3000`
-2. Click "Get Started" to create an account
-3. Fill out the registration form
-4. You'll be redirected to the dashboard
-5. Try logging out and back in!
+1. **Visit** `http://localhost:3000`
+2. **Register** a new account (Click "Get Started")
+3. **Login** and access the protected dashboard
+4. **Restart the server** - your account persists!
+5. **Check database**: `sqlite3 api/fluxpad.db "SELECT email, full_name FROM users;"`
 
 ## 📊 **Current Implementation Status**
 
 ### ✅ **Completed Features:**
 - **Authentication System**: Full JWT implementation with registration, login, logout
+- **Database Integration**: SQLite database with persistent user storage
 - **Frontend Pages**: Landing page, login, register, protected dashboard
 - **Security**: Auto-generated JWT secrets, bcrypt password hashing
 - **API Documentation**: Automatic Swagger/OpenAPI docs at `/docs`
 - **Development Setup**: Easy local development with hot reload
+- **Data Persistence**: Users and data survive server restarts
 
 ### 🔄 **In Progress:**
-- User data persistence (currently in-memory storage)
-- Database integration with Supabase
+- File upload system for CSV/Excel files
+- Data visualization and management interface
 
 ### 📋 **Next Steps:**
-1. Database schema design and Supabase integration
-2. File upload system for CSV/Excel files
-3. Data visualization and table display
-4. AI-powered natural language querying
-5. Production deployment configuration
+1. File upload system for CSV/Excel files
+2. Data visualization and table display
+3. AI-powered natural language querying
+4. Production deployment configuration
+5. Advanced data transformation features
 
 ## 🔧 Configuration
 
-### Supabase Integration
+### SQLite Database
 
-FluxPad uses Supabase as a managed PostgreSQL provider with the following approach:
+FluxPad uses SQLite for fast, reliable local storage:
 
-- **Database Only**: No Supabase Auth or Edge Functions
-- **Custom JWT**: Self-managed authentication system
-- **Direct SQL**: Raw PostgreSQL queries for optimal performance
-- **Real-time Updates**: Optional Supabase real-time subscriptions
+- **Zero Configuration**: Database auto-creates on first run
+- **File-based**: Single `fluxpad.db` file contains everything
+- **Fast Queries**: Direct file access, no network latency
+- **Full SQL Support**: Complex queries, joins, indexes, transactions
+- **Production Ready**: Scales to thousands of users and GBs of data
 
 ### LLM Integration
 
@@ -174,18 +180,21 @@ The core AI functionality translates natural language queries into SQL:
 fluxpad/
 ├── api/                    # FastAPI backend
 │   ├── main.py            # Application entry point
-│   ├── supabase_client.py # Database client
+│   ├── auth.py            # JWT authentication system
+│   ├── database.py        # SQLite database models
+│   ├── crud.py            # Database operations
 │   ├── requirements.txt   # Python dependencies
-│   └── ...
+│   ├── fluxpad.db         # SQLite database (auto-created)
+│   └── .jwt_secret        # Auto-generated JWT secret
 ├── web/                   # Next.js frontend
 │   ├── src/
 │   │   ├── app/          # App Router pages
-│   │   └── lib/          # Utilities and clients
+│   │   │   ├── login/    # Login page
+│   │   │   ├── register/ # Registration page
+│   │   │   └── dashboard/# Protected dashboard
+│   │   └── lib/          # Utilities (planned)
 │   ├── public/           # Static assets
-│   ├── package.json      # Node.js dependencies
-│   └── ...
-├── docs/                 # Documentation (planned)
-├── tests/                # Test suites (planned)
+│   └── package.json      # Node.js dependencies
 └── README.md
 ```
 

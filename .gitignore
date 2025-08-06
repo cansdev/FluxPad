@@ -20,5 +20,11 @@ api/.jwt_secret
 **/.jwt_secret
 *.key
 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+api/fluxpad.db
+
 # Supabase
 supabase/.temp/
