@@ -11,14 +11,20 @@ FluxPad enables users to upload, visualize, and transform structured datasets (C
 
 ## ✨ Key Features
 
-- **📤 Data Upload & Management**: Seamlessly import CSV and Excel files with automatic schema detection
-- **🔍 Intelligent Querying**: Natural language queries powered by local LLM integration
-- **🗃️ Structured Storage**: PostgreSQL backend with optimized data modeling via Supabase
-- **🎨 Modern UI**: Responsive dashboard built with Next.js and Tailwind CSS
-- **🔐 Secure Authentication**: JWT-based authentication system
-- **🤖 AI-Powered Insights**: Automated metadata generation and column mapping suggestions
-- **🔄 Data Transformation**: Advanced filtering and transformation through prompt-to-SQL interface
-- **📈 Extensible Architecture**: Designed for enterprise workflows and API integrations
+### 🚀 **Currently Implemented:**
+- **🔐 Secure Authentication**: Production-ready JWT authentication with auto-generated secrets
+- **👤 User Management**: Registration, login, and protected dashboard
+- **🎨 Modern UI**: Responsive interface built with Next.js 15 and Tailwind CSS 4
+- **🔒 Security**: Bcrypt password hashing, secure token storage, CORS protection
+- **⚡ Fast API**: High-performance FastAPI backend with automatic documentation
+
+### 🚧 **Coming Soon:**
+- **📤 Data Upload & Management**: CSV and Excel file import with automatic schema detection
+- **🔍 Intelligent Querying**: Natural language queries powered by LLM integration
+- **🗃️ Database Storage**: PostgreSQL backend with Supabase integration
+- **🤖 AI-Powered Insights**: Automated metadata generation and column mapping
+- **🔄 Data Transformation**: Advanced filtering through prompt-to-SQL interface
+- **📈 Extensible Architecture**: Enterprise workflows and API integrations
 
 ## 🛠️ Tech Stack
 
@@ -27,24 +33,25 @@ FluxPad enables users to upload, visualize, and transform structured datasets (C
 - **React 19** - UI library with latest features
 - **Tailwind CSS 4** - Utility-first CSS framework
 - **TypeScript 5** - Type-safe development
-- **Supabase JS SDK** - Database client and authentication
 
 ### Backend
 - **FastAPI 0.104.1** - High-performance Python web framework
-- **Uvicorn** - ASGI server with WebSocket support
-- **Custom JWT Authentication** - Secure token-based auth
-- **SQLAlchemy/Async ORM** - Database abstraction layer
+- **Uvicorn** - ASGI server for production deployment
+- **PyJWT** - JSON Web Token implementation
+- **Passlib + Bcrypt** - Secure password hashing
+- **Pydantic** - Data validation and serialization
 - **Python 3.12+** - Modern Python runtime
 
-### Database & Infrastructure
-- **Supabase Cloud** - Managed PostgreSQL with real-time capabilities
-- **PostgreSQL** - Robust relational database
-- **Custom database schema** - No Supabase Auth or Edge Functions
+### Security & Authentication
+- **Custom JWT System** - Auto-generated secrets, access + refresh tokens
+- **Bcrypt Password Hashing** - Industry-standard password security
+- **CORS Protection** - Cross-origin request security
+- **Secure Token Storage** - Automatic secret generation and file permissions
 
-### AI/ML Integration
-- **HuggingFace Transformers** - Local LLM hosting
-- **Prompt-to-SQL Engine** - Natural language to database queries
-- **OpenAI API** (optional) - Enhanced language model capabilities
+### Planned Integrations
+- **Supabase** - PostgreSQL database (coming soon)
+- **HuggingFace Transformers** - Local LLM hosting (planned)
+- **OpenAI API** - Enhanced language capabilities (optional)
 
 ## 🚀 Quick Start
 
@@ -52,7 +59,6 @@ FluxPad enables users to upload, visualize, and transform structured datasets (C
 
 - **Node.js 18+** and **pnpm**
 - **Python 3.12+** and **pip**
-- **Supabase account** for database hosting
 
 ### 1. Clone the Repository
 
@@ -61,37 +67,7 @@ git clone https://github.com/yourusername/fluxpad.git
 cd fluxpad
 ```
 
-### 2. Environment Setup
-
-Create environment files for both frontend and backend:
-
-**Frontend (`web/.env.local`):**
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-```
-
-**Backend (`api/.env`):**
-```env
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_KEY=your_supabase_service_role_key
-JWT_SECRET=your_jwt_secret_key
-DATABASE_URL=your_postgresql_connection_string
-OPENAI_API_KEY=your_openai_key_optional
-HUGGINGFACE_API_KEY=your_hf_key_optional
-```
-
-### 3. Database Setup
-
-1. Create a new Supabase project
-2. Run the database migrations:
-```sql
--- Create tables for user data, file uploads, and metadata
--- (Database schema will be provided in /docs/schema.sql)
-```
-
-### 4. Backend Setup
+### 2. Backend Setup
 
 ```bash
 cd api
@@ -104,12 +80,17 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 # Run development server
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload
 ```
 
 The API will be available at `http://localhost:8000`
 
-### 5. Frontend Setup
+**✨ JWT Secret Auto-Generation:**
+- No manual configuration needed!
+- JWT secret is automatically generated on first run
+- Stored securely in `api/.jwt_secret` (ignored by git)
+
+### 3. Frontend Setup
 
 ```bash
 cd web
@@ -122,6 +103,34 @@ pnpm dev
 ```
 
 The application will be available at `http://localhost:3000`
+
+### 4. Test the Authentication
+
+1. Visit `http://localhost:3000`
+2. Click "Get Started" to create an account
+3. Fill out the registration form
+4. You'll be redirected to the dashboard
+5. Try logging out and back in!
+
+## 📊 **Current Implementation Status**
+
+### ✅ **Completed Features:**
+- **Authentication System**: Full JWT implementation with registration, login, logout
+- **Frontend Pages**: Landing page, login, register, protected dashboard
+- **Security**: Auto-generated JWT secrets, bcrypt password hashing
+- **API Documentation**: Automatic Swagger/OpenAPI docs at `/docs`
+- **Development Setup**: Easy local development with hot reload
+
+### 🔄 **In Progress:**
+- User data persistence (currently in-memory storage)
+- Database integration with Supabase
+
+### 📋 **Next Steps:**
+1. Database schema design and Supabase integration
+2. File upload system for CSV/Excel files
+3. Data visualization and table display
+4. AI-powered natural language querying
+5. Production deployment configuration
 
 ## 🔧 Configuration
 
@@ -236,8 +245,14 @@ Once the backend is running, visit:
 - **Interactive Docs**: `http://localhost:8000/docs`
 - **OpenAPI Schema**: `http://localhost:8000/openapi.json`
 
-Key endpoints:
-- `POST /auth/login` - User authentication
+### 🔐 **Current Authentication Endpoints:**
+- `POST /auth/register` - User registration (returns access + refresh tokens)
+- `POST /auth/login` - User authentication (returns access + refresh tokens)
+- `GET /auth/me` - Get current user info (protected)
+- `POST /auth/refresh` - Refresh access token using refresh token
+- `GET /ping` - Health check endpoint
+
+### 🚧 **Planned Data Endpoints:**
 - `POST /data/upload` - File upload and processing
 - `GET /data/query` - Natural language querying
 - `POST /data/transform` - Data transformation
