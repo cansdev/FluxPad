@@ -103,9 +103,17 @@ async def get_current_user(
     )
 
 # Routes
+@app.get("/")
+async def root():
+    return {"message": "FluxPad API is running", "status": "healthy"}
+
 @app.get("/ping")
 async def ping():
     return {"status": "pong"}
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "service": "fluxpad-api"}
 
 @app.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):

@@ -12,7 +12,13 @@ from pathlib import Path
 
 # Database configuration
 import os
+
+# Railway database configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./fluxpad.db")
+
+# Handle Railway's PostgreSQL URL format if provided
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
 # Create async engine
 engine = create_async_engine(
