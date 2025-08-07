@@ -15,5 +15,6 @@ export const API_ENDPOINTS = {
   REGISTER: `${RESOLVED_API_BASE_URL}/auth/register`,
   ME: `${RESOLVED_API_BASE_URL}/auth/me`,
   REFRESH: `${RESOLVED_API_BASE_URL}/auth/refresh`,
+  DELETE_ACCOUNT: `${RESOLVED_API_BASE_URL}/auth/delete-account`,
   PING: `${RESOLVED_API_BASE_URL}/ping`,
 } as const

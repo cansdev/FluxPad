@@ -1,10 +1,13 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 from contextlib import asynccontextmanager
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from auth import jwt_manager
 from database import init_database, close_database, get_db, User as DBUser
@@ -22,11 +25,31 @@ async def lifespan(app: FastAPI):
     await close_database()
 
 
+# Rate limiter setup
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="FluxPad API", 
     description="Backend API for FluxPad data interaction platform",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url=None,  # Disable docs in production for security
+    redoc_url=None  # Disable redoc in production for security
 )
+
+# Add rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 # CORS middleware to allow frontend requests
 app.add_middleware(
@@ -34,12 +57,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",  # Local development
         "http://localhost:8080",  # Local development (Next.js custom port)
-        "https://fluxpad-web-production.up.railway.app",  # Production frontend
-        "https://*.up.railway.app"  # Any Railway subdomain
+        "https://fluxpad-web-production.up.railway.app",  # Production frontend ONLY
+        # Removed wildcard Railway domains for security
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE"],  # Only needed methods
+    allow_headers=["Authorization", "Content-Type"],  # Only needed headers
 )
 
 # Security
@@ -116,7 +139,8 @@ async def health():
     return {"status": "healthy", "service": "fluxpad-api"}
 
 @app.post("/auth/register", response_model=TokenResponse)
-async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")  # 🔒 Limit registration attempts
+async def register(request: Request, user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     """Register new user"""
     # Create new user in database
     db_user = await UserCRUD.create_user(
@@ -150,7 +174,8 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     )
 
 @app.post("/auth/login", response_model=TokenResponse)
-async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")  # 🔒 Limit login attempts
+async def login(request: Request, user_data: UserLogin, db: AsyncSession = Depends(get_db)):
     """Login user"""
     # Authenticate user
     db_user = await UserCRUD.authenticate_user(
@@ -184,7 +209,8 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
     )
 
 @app.post("/auth/refresh", response_model=TokenResponse)
-async def refresh_token(refresh_data: RefreshTokenRequest):
+@limiter.limit("20/minute")  # 🔒 Limit refresh attempts
+async def refresh_token(request: Request, refresh_data: RefreshTokenRequest):
     """Refresh access token using refresh token"""
     try:
         # Verify refresh token and get new access token
@@ -219,5 +245,31 @@ async def refresh_token(refresh_data: RefreshTokenRequest):
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
     return current_user
+
+@app.delete("/auth/delete-account")
+@limiter.limit("3/hour")  # 🔒 Limit account deletion attempts
+async def delete_account(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete the current user's account"""
+    try:
+        # Delete the user from the database
+        deleted = await UserCRUD.delete_user(db, current_user.user_id)
+        
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        return {"message": "Account deleted successfully"}
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete account"
+        )
 
 
