@@ -33,6 +33,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Local development
+        "http://localhost:8080",  # Local development (Next.js custom port)
         "https://fluxpad-web-production.up.railway.app",  # Production frontend
         "https://*.up.railway.app"  # Any Railway subdomain
     ],
@@ -210,3 +211,19 @@ async def refresh_token(refresh_data: RefreshTokenRequest):
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
     return current_user
+
+
+# For Railway deployment
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    
+    # Railway provides PORT environment variable
+    port = int(os.getenv("PORT", 8000))
+    
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=False
+    )

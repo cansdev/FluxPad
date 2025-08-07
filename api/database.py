@@ -11,7 +11,8 @@ import uuid
 from pathlib import Path
 
 # Database configuration
-DATABASE_URL = "sqlite+aiosqlite:///./fluxpad.db"
+import os
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./fluxpad.db")
 
 # Create async engine
 engine = create_async_engine(
